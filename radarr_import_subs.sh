@@ -24,15 +24,23 @@
 #########################
 # Setup
 
-RADARR_URL='http://radarr:7878' # including port (and base path if applicable)
+RADARR_URL='' # including port (and base path if applicable)
   # no trailing slash!
   # example with base path: 'http://192.168.33.112:7878/basepath'
 RADARR_API_KEY='' # Radarr WebUI > Settings > General > Security
-RELEASE_GRPS=('RARBG' 'VXT') # only process these groups' releases
+RELEASE_GRPS=('RARBG' 'VXT' 'YTS' 'YTS.MX') # only process these groups' releases
 SUB_DIRS=('Subs' 'Subtitles') # paths to search for subtitles
 SUB_EXTS='srt\|ass' # subtitle file extensions separated by \|
-SUB_REGEX=".*en.*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
-SUB_LANG='en' # this just gets added to final subtitle filenames
+#SUB_EN_REGEX="([0-9]{1,2}\_English.*|.*eng).*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+#SUB_FR_REGEX="([0-9]{1,2}\_French.*|.*fre).*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+
+SUB_EN_REGEX=".*[0-9][0-9]?\_English.*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+SUB_FR_REGEX=".*[0-9][0-9]?\_French\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+SUB_EN_2_REGEX=".*eng\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+SUB_FR_2_REGEX=".*fre\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+
+SUB_EN_LANG='en' # this just gets added to final subtitle filenames
+SUB_FR_LANG='fr' # this just gets added to final subtitle filenames
 LOGGING=''
   #      '': standard logging
   # 'debug': log all messages to stderr to make them visible as Info in radarr logs
@@ -43,7 +51,7 @@ LOGGING=''
 
 log() {
   # stderr -> radarr Info
-  echo "$1" >&2
+  echo "$1"
 }
 dlog() {
   if [[ "$LOGGING" == 'debug' || "$LOGGING" == 'trace' ]]; then
@@ -68,15 +76,15 @@ tlog() {
 if [[ "$radarr_eventtype" == 'Test' ]]; then
   # this script needs the following stuff defined for testing:
   radarr_eventtype='Download'
-  radarr_moviefile_releasegroup='VXT'
-  radarr_moviefile_sourcefolder='/pirate/dl/movies/Final.Fantasy.VII.Advent.Children.Complete.2005.JAPANESE.1080p.BluRay.H264.AAC-VXT'
-  radarr_moviefile_sourcepath='/pirate/dl/movies/Final.Fantasy.VII.Advent.Children.Complete.2005.JAPANESE.1080p.BluRay.H264.AAC-VXT/Final.Fantasy.VII.Advent.Children.Complete.2005.JAPANESE.1080p.BluRay.H264.AAC-VXT.mp4'
-  radarr_movie_path='/pirate/movies/Final Fantasy VII - Advent Children (2005)'
-  radarr_moviefile_path='/pirate/movies/Final Fantasy VII - Advent Children (2005)/Final.Fantasy.VII.Advent.Children.Complete.2005.JAPANESE.1080p.BluRay.H264.AAC-VXT.mp4'
-  radarr_moviefile_relativepath='Final.Fantasy.VII.Advent.Children.Complete.2005.JAPANESE.1080p.BluRay.H264.AAC-VXT.mp4'
-  radarr_movie_id='1591'
-  radarr_movie_title='Final Fantasy VII: Advent Children'
-  radarr_movie_year='2005'
+  radarr_moviefile_releasegroup='YTS.MX'
+  radarr_moviefile_sourcefolder='.'
+  radarr_moviefile_sourcepath=''
+  radarr_movie_path=''
+  radarr_moviefile_path='title_of_movie.mp4'
+  radarr_moviefile_relativepath=''
+  radarr_movie_id='46'
+  radarr_movie_title='The Sea Beast'
+  radarr_movie_year=''
 fi
 # after that, you can just hit the Test button on the Edit Connection dialog in radarr
 # alternatively, you can run this script from a shell by setting the event type to Test above
@@ -88,7 +96,45 @@ fi
 [[ "$radarr_eventtype" != 'Download' ]] && exit 0
 
 # check release group
-printf '%s\0' "${RELEASE_GRPS[@]}" | grep -F -x -z -- "$radarr_moviefile_releasegroup" >/dev/null || exit 0
+printf '%s\0' "${RELEASE_GRPS[@]}" | grep -F -x -- "$radarr_moviefile_releasegroup" >/dev/null || exit 0
+
+multiAnalyseDirectory() {
+    # path exists
+    cd "$sub_dir" # `find` searches entire path, so `cd` to get relative path instead!
+    dlog "Analyse for english subtitles"
+    local nb_subtitle_found=0
+    analyseDirectory $SUB_EN_REGEX $SUB_EN_LANG
+    analyseDirectory $SUB_EN_2_REGEX $SUB_EN_LANG
+    dlog "Analyse for french subtitles"
+    local nb_subtitle_found=0
+    analyseDirectory $SUB_FR_REGEX $SUB_FR_LANG
+    analyseDirectory $SUB_FR_2_REGEX $SUB_FR_LANG
+}
+
+analyseDirectory() {
+  sub_regex="$1"
+  sub_lang="$2"
+  # switch commment line for alpine
+  # num_subs=$(find . -type f -regex "${sub_regex}" -print0 '' | wc -c)
+  num_subs=$(find . -type f -iregex "${sub_regex}" -printf '.' | wc -c)
+  dlog "Found ${num_subs} matching subtitle(s) in ${sub_dir}"
+  if [[ "$num_subs" -ge 1 ]]; then
+    sub_track=$((nb_subtitle_found))
+    # switch commment line for alpine
+    # find . -type f -regex "${sub_regex}" -print0 |
+    find . -type f -iregex "${sub_regex}" -print0 |
+    while read -r -d '' sub_file; do      
+      dlog "Current subtitle: ${sub_file}"
+      sub_ext="${sub_file##*.}"
+      log "Copying subtitle: ${rel_sub_dir}/${sub_file##*/} --> ${sub_path_prefix}.${sub_track}.${sub_ext}"
+      cp "${sub_file}" "${sub_path_prefix}.${sub_track}.${sub_ext}"
+      sub_track=$((sub_track+1))
+    done
+    nb_subtitle_found=$((num_subs+nb_subtitle_found))
+  else
+    dlog "No subtitles found in ${sub_dir}" 
+  fi
+}
 
 radarr_rescan() {
   local api_url="${RADARR_URL}/api/v3/command?apikey=${RADARR_API_KEY}"
@@ -118,39 +164,8 @@ for rel_sub_dir in "${SUB_DIRS[@]}"; do
   dlog "Current subtitle dir: ${rel_sub_dir}"
   sub_dir="${radarr_moviefile_sourcefolder}/${rel_sub_dir}"
   if [[ -d "$sub_dir" ]]; then
-    # path exists
-    cd "$sub_dir" # `find` searches entire path, so `cd` to get relative path instead!
-    num_subs=$(find . -type f -iregex "$SUB_REGEX" -printf '.' | wc -c)
-    dlog "Found ${num_subs} matching subtitle(s) in ${sub_dir}"
-    find . -type f -iregex "$SUB_REGEX" -print0 |
-      while read -r -d '' sub_file; do
-        dlog "Current subtitle: ${sub_file}"
-        sub_ext="${sub_file##*.}"
-        if [[ "$sub_file" =~ ([0-9]) ]]; then
-          # sub filename contains a track number
-          sub_track_num="${BASH_REMATCH[1]}"
-          # if there's only one sub file but it has a funny track number, just assume it's a normal sub (track 2)
-          [[ "$num_subs" -eq 1 && "$sub_track_num" -gt 3 ]] && sub_track_num=2
-          case "$sub_track_num" in
-            1) sub_track="${SUB_LANG}.forced";;
-            2) sub_track="${SUB_LANG}";;
-            3) sub_track="${SUB_LANG}.sdh";;
-            *) sub_track="${SUB_LANG}.${sub_track_num}";;
-          esac
-        else
-          if [[ "$num_subs" -eq 1 ]]; then
-            # no track number, only one sub
-            sub_track="$SUB_LANG"
-          else
-            # no track number, multiple subs
-            log "ERROR: Multiple matching subtitles were found, but a match was found without a track number in its filename. Aborting. (${sub_dir}/${sub_file##*/})"
-            radarr_rescan
-            exit 1
-          fi
-        fi
-        log "Copying subtitle: ${rel_sub_dir}/${sub_file##*/} --> ${sub_path_prefix}.${sub_track}.${sub_ext}"
-        cp "${sub_file}" "${sub_path_prefix}.${sub_track}.${sub_ext}"
-      done
+    multiAnalyseDirectory
+    
   fi
 done
 
