@@ -1,1 +1,1 @@
-image: linuxserver/radarr:latest
+image: alpine:latest
