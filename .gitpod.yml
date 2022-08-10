@@ -1,1 +1,1 @@
-image: alpine:latest
+image: debian:9
