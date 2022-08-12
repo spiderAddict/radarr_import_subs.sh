@@ -1,1 +1,1 @@
-image: debian:9
+image: workspace-full:latest
