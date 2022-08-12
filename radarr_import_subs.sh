@@ -40,8 +40,8 @@ SUB_DEFAULT_REGEX=".*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this
 SUB_EN_REGEX=".*[0-9][0-9]?\_English.*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 SUB_FR_REGEX=".*[0-9][0-9]?\_French\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 # Format subtitle.eng.srt
-SUB_EN_2_REGEX=".*eng\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
-SUB_FR_2_REGEX=".*fre\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+SUB_EN_2_REGEX=".*\(eng\|English\)\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
+SUB_FR_2_REGEX=".*\(fre\|French\)\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 
 SUB_EN_LANG='en' # this just gets added to final subtitle filenames
 SUB_FR_LANG='fr' # this just gets added to final subtitle filenames
