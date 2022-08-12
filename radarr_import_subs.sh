@@ -50,15 +50,14 @@ LOGGING=''
 # Logging
 
 log() {
-  # stderr -> radarr Info
-  echo "$1"
+  # stderr -> radarr Error
+  echo "$1" >&2
 }
 dlog() {
   if [[ "$LOGGING" == 'debug' || "$LOGGING" == 'trace' ]]; then
     log "Debug: ${1}"
   else
-    # stdout -> radarr Debug
-    echo "$1"
+    log "$1"
   fi
 }
 tlog() {
@@ -114,15 +113,15 @@ multiAnalyseDirectory() {
 analyseDirectory() {
   sub_regex="$1"
   sub_lang="$2"
-  # switch commment line for alpine
-  # num_subs=$(find . -type f -regex "${sub_regex}" -print0 '' | wc -c)
-  num_subs=$(find . -type f -iregex "${sub_regex}" -printf '.' | wc -c)
+  # switch commment line for alpine/ubuntu
+  num_subs=$(find . -type f -regex "${sub_regex}" -print0 '' | wc -l)
+  # num_subs=$(find . -type f -iregex "${sub_regex}" -printf '.' | wc -c)
   dlog "Found ${num_subs} matching subtitle(s) in ${sub_dir}"
   if [[ "$num_subs" -ge 1 ]]; then
     sub_track=$((nb_subtitle_found))
-    # switch commment line for alpine
-    # find . -type f -regex "${sub_regex}" -print0 |
-    find . -type f -iregex "${sub_regex}" -print0 |
+    # switch commment line for alpine/ubuntu
+    find . -type f -regex "${sub_regex}" -print0 |
+    # find . -type f -iregex "${sub_regex}" -print0 |
     while read -r -d '' sub_file; do      
       dlog "Current subtitle: ${sub_file}"
       sub_ext="${sub_file##*.}"
