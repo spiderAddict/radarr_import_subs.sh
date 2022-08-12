@@ -1,4 +1,12 @@
+rm -rf Subs
+rm *.srt
+
 mkdir -p Subs
+
+touch RARBG.txt
+touch RARBG_DO_NOT_MIRROR.exe
+touch test.srt
+
 cd Subs
 touch Prey.2022.1080p.WEBRip.x265-RARBG
 touch Prey.2022.1080p.WEBRip.x265-RARBG.mp4
