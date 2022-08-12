@@ -34,6 +34,7 @@ SUB_EXTS='srt\|ass' # subtitle file extensions separated by \|
 #SUB_EN_REGEX="([0-9]{1,2}\_English.*|.*eng).*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 #SUB_FR_REGEX="([0-9]{1,2}\_French.*|.*fre).*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 
+SUB_REGEX=".*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 SUB_EN_REGEX=".*[0-9][0-9]?\_English.*\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 SUB_FR_REGEX=".*[0-9][0-9]?\_French\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
 SUB_EN_2_REGEX=".*eng\.\(${SUB_EXTS}\)$" # regex used to find subtitles (in this POS regex variant, you have to escape ())
@@ -101,11 +102,11 @@ multiAnalyseDirectory() {
     # path exists
     cd "$sub_dir" # `find` searches entire path, so `cd` to get relative path instead!
     dlog "Analyse for english subtitles"
-    local nb_subtitle_found=0
+    local nb_subtitle_found=1
     analyseDirectory $SUB_EN_REGEX $SUB_EN_LANG
     analyseDirectory $SUB_EN_2_REGEX $SUB_EN_LANG
     dlog "Analyse for french subtitles"
-    local nb_subtitle_found=0
+    local nb_subtitle_found=1
     analyseDirectory $SUB_FR_REGEX $SUB_FR_LANG
     analyseDirectory $SUB_FR_2_REGEX $SUB_FR_LANG
 }
@@ -125,8 +126,8 @@ analyseDirectory() {
     while read -r -d '' sub_file; do      
       dlog "Current subtitle: ${sub_file}"
       sub_ext="${sub_file##*.}"
-      log "Copying subtitle: ${rel_sub_dir}/${sub_file##*/} --> ${sub_path_prefix}.${sub_track}.${sub_ext}"
-      cp "${sub_file}" "${sub_path_prefix}.${sub_track}.${sub_ext}"
+      log "Copying subtitle: ${rel_sub_dir}/${sub_file##*/} --> ${sub_path_prefix}.${sub_lang}.${sub_track}.${sub_ext}"
+      cp "${sub_file}" "${sub_path_prefix}.${sub_lang}.${sub_track}.${sub_ext}"
       sub_track=$((sub_track+1))
     done
     nb_subtitle_found=$((num_subs+nb_subtitle_found))
@@ -159,12 +160,15 @@ tlog "$(printenv)"
 # full target path for sub files (without file extension)
 sub_path_prefix="${radarr_moviefile_path%.*}"
 
+dlog "Analyse local subtitles and set for default english"
+local nb_subtitle_found=0
+analyseDirectory $SUB_REGEX $SUB_EN_LANG    
+
 for rel_sub_dir in "${SUB_DIRS[@]}"; do
   dlog "Current subtitle dir: ${rel_sub_dir}"
   sub_dir="${radarr_moviefile_sourcefolder}/${rel_sub_dir}"
   if [[ -d "$sub_dir" ]]; then
-    multiAnalyseDirectory
-    
+    multiAnalyseDirectory    
   fi
 done
 
