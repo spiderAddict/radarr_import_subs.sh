@@ -103,7 +103,6 @@ printf '%s\0' "${RELEASE_GRPS[@]}" | grep -F -x -- "$radarr_moviefile_releasegro
 
 multiAnalyseDirectory() {
   # path exists
-  cd "$sub_dir" # `find` searches entire path, so `cd` to get relative path instead!
   dlog "Analyse for english subtitles"
   local nb_subtitle_found=1
   analyseDirectory $SUB_EN_REGEX $SUB_EN_LANG
@@ -113,12 +112,12 @@ multiAnalyseDirectory() {
   analyseDirectory $SUB_FR_REGEX $SUB_FR_LANG
   analyseDirectory $SUB_FR_2_REGEX $SUB_FR_LANG
   # back to previous directory
-  cd ..
 }
 
 analyseDirectory() {
   sub_regex="$1"
   sub_lang="$2"
+  cd "$sub_dir" # `find` searches entire path, so `cd` to get relative path instead!
   # switch commment line for alpine/ubuntu
   num_subs=$(find . -maxdepth 1 -type f -regex "${sub_regex}" | wc -l)
   # num_subs=$(find . -maxdepth 1 -type f -iregex "${sub_regex}" -printf '.' | wc -c)
