@@ -171,6 +171,7 @@ tlog "$(printenv)"
 sub_path_prefix="${radarr_moviefile_path%.*}"
 
 dlog "Analyse root subtitles is set for default english"
+sub_dir="root level"
 analyseDirectory $SUB_DEFAULT_REGEX $SUB_EN_LANG
 
 for rel_sub_dir in "${SUB_DIRS[@]}"; do
